@@ -1,4 +1,15 @@
-# cc2530prog - Texas Instruments CC2530 Micro controller programming utility
+# cc2530prog - Texas Instruments CC2530 Micro controller programming utility for NanoPI NEO'set
+
+## 0. Prerequisites
+
+WiringNP needs to be installed.
+
+```
+git clone https://github.com/friendlyarm/WiringNP
+cd WiringNP/
+chmod 755 build
+./build
+```
 
 ## 1. General informations
 
