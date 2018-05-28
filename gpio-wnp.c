@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "gpio.h"
+
 #include <wiringPi.h>
 
 void gpio_init()
