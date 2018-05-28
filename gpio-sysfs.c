@@ -17,6 +17,10 @@
 
 #define SYSFS_GPIO	"/sys/class/gpio"
 
+void gpio_init()
+{
+}
+
 int read_file(const char *path, char *str, size_t size)
 {
 	int fd;

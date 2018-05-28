@@ -1109,6 +1109,8 @@ int main(int argc, char **argv)
 	struct stat buf;
 	int flash_size = 0;
 	unsigned int retry_cnt = 3;
+	
+	gpio_init();
 
 	while ((opt = getopt(argc, argv, "f:rlc:ivP")) > 0) {
 		switch (opt) {
