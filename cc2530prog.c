@@ -322,11 +322,7 @@ static void delay_ns(unsigned int ns)
 
 void delay (unsigned int millis)
 {
-  struct timespec sleeper, dummy ;
-
-  sleeper.tv_sec  = (time_t)(millis / 1000) ;
-  sleeper.tv_nsec = (long)(millis % 1000) * 1000000 ;
-  nanosleep (&sleeper, &dummy) ;
+  usleep (millis) ;
 }
 
 
