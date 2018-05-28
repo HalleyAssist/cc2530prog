@@ -22,6 +22,7 @@ enum gpio_direction {
 	GPIO_DIRECTION_HIGH,
 };
 
+void gpio_init();
 int gpio_export(int n);
 int gpio_unexport(int n);
 int gpio_set_direction(int n, enum gpio_direction direction);
