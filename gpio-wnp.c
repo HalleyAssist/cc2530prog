@@ -41,7 +41,8 @@ gpio_set_direction(int n, enum gpio_direction direction)
 		[GPIO_DIRECTION_OUT]	= INPUT
 	};
 	
-	return pinMode (n, str[direction]);
+	pinMode (n, str[direction]);
+	return 0;
 }
 
 int
