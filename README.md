@@ -1,4 +1,4 @@
-# cc2530prog - Texas Instruments CC2530 Micro controller programming utility for NanoPI NEO'set
+# cc2530prog - Texas Instruments CC2530 Microcontroller programming utility for NanoPI NEOs
 
 ## 0. Prerequisites
 
@@ -13,7 +13,7 @@ chmod 755 build
 
 ## 1. General informations
 
-This utility uses the CC2530 Debug Port to program the micro-controller. The
+This utility uses the CC2530 Debug Port to program the microcontroller. The
 specific details of this interface are described in the following documents:
 - [swru191b](http://www.ti.com/lit/swru191)
 - [swra124](http://www.ti.com/lit/ug/swra124/swra124.pdf)
@@ -52,7 +52,7 @@ implement the following functions (also declared in gpio.h):
 You are then supposed to set the Makefile environment **GPIO_BACKEND** to point
 to the file implementing these GPIO routines for your specific platform.
 
-## 3. Recommandations
+## 3. Recommendations
 
 The CC2530 firmware size matches the available hardware flash sizes (64KB up to
 256KB) but since programming using the debug port is very slow, it is
@@ -60,6 +60,9 @@ recommended to bootstrap using the debug port and then use another mechanism to
 transfer the bigger software image.
 
 TI provides such a mechanism using an UART/SPI bootloader.
+
+This utility operates with binaries files. Intel HEX files can be converted 
+with SRecord: `srec_cat inputfile.hex -intel -o outputfile.bin -binary`
 
 ## 4. Future developments
 
