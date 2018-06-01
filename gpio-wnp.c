@@ -12,10 +12,20 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 #include "gpio.h"
 
 #include <wiringPi.h>
+
+struct timespec sleeper = {.tv_sec = 0}, dummy;
+
+static void
+delay_ns(unsigned int ns)
+{
+    sleeper.tv_nsec = ns ;
+    nanosleep (&sleeper, &dummy) ;
+}
 
 void
 gpio_init()
@@ -29,7 +39,8 @@ gpio_export(int n)
 	return 0;
 }
 
-int gpio_unexport(int n)
+int
+gpio_unexport(int n)
 {
 	return 0;
 }
@@ -38,10 +49,11 @@ int
 gpio_set_direction(int n, enum gpio_direction direction)
 {
 	static const int str[] = {
-		[GPIO_DIRECTION_IN]	= INPUT,
-		[GPIO_DIRECTION_OUT]	= OUTPUT
+		[GPIO_DIRECTION_IN]	 = INPUT,
+		[GPIO_DIRECTION_OUT] = OUTPUT
 	};
 	pinMode (n, str[direction]);
+	delay_ns(50);
 	return 0;
 }
 
@@ -57,5 +69,7 @@ int
 gpio_set_value(int n, bool value)
 {
 	digitalWrite (n, (int)value);
+	if (n == CCLK_GPIO) delay_ns(1);
+	else if (n == RST_GPIO) usleep(1);
 	return 0;
 }

@@ -13,7 +13,6 @@
 #include <getopt.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -311,27 +310,10 @@ static int cc2530_gpio_deinit(void)
 	return 0;
 }
 
-
-static void delay_ns(unsigned int ns)
-{
-    struct timespec sleeper, dummy;
-    sleeper.tv_sec  = 0;
-    sleeper.tv_nsec = ns ;
-    nanosleep (&sleeper, &dummy) ;
-}
-
-void delay (unsigned int micros)
-{
-  usleep (micros) ;
-}
-
-
 static int cc2530_leave_debug(void)
 {
     gpio_set_value(RST_GPIO, 0);
-    delay(1);
     gpio_set_value(RST_GPIO, 1);
-    delay(1);
     return 0;
 }
 
@@ -343,25 +325,17 @@ static int cc2530_leave_debug(void)
 
 static int cc2530_enter_debug(void)
 {
+
     cc2530_leave_debug();
     gpio_set_value(CCLK_GPIO, 0);
     gpio_set_value(DATA_GPIO, 0);
-
     gpio_set_value(RST_GPIO, 0);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 0);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 1);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 0);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 1);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 0);
-    delay(1);
     gpio_set_value(RST_GPIO, 1);
-    delay(1);
-
     debug_enabled = 1;
 
     return 0;
@@ -377,18 +351,13 @@ static inline void send_byte(unsigned char byte)
 
     /* Data setup on rising clock edge */
     for (i = 7; i >= 0; i--) {
-        //
+
         if (byte & (1 << i))
             gpio_set_value(DATA_GPIO, 1);
         else
             gpio_set_value(DATA_GPIO, 0);
-
-
         gpio_set_value(CCLK_GPIO, 1);
-        delay_ns(1);
-
         gpio_set_value(CCLK_GPIO, 0);
-        delay_ns(1);
     }
 }
 
@@ -405,7 +374,6 @@ static inline void read_byte(unsigned char *byte)
     for (i = 7; i >= 0; i--) {
 
         gpio_set_value(CCLK_GPIO, 1);
-        delay_ns(1);
 
         gpio_get_value(DATA_GPIO, &val);
 
