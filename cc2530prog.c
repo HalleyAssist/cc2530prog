@@ -148,7 +148,7 @@ const uint8_t dma_desc[32] = {
 	0x42                            /* increment source */
 };
 
-static uint16_t flash_ptr = 0;
+static uint32_t flash_ptr = 0;
 
 static void init_flash_ptr(void)
 {
