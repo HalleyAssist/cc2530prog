@@ -342,11 +342,9 @@ static int cc2530_leave_debug(void)
 
 static int cc2530_enter_debug(void)
 {
-
     cc2530_leave_debug();
     gpio_set_value(CCLK_GPIO, 0);
     gpio_set_value(DATA_GPIO, 0);
-
 
     gpio_set_value(RST_GPIO, 0);
     delay(10);

@@ -1,5 +1,5 @@
 /*
- * Linux GPIO backend using sysfs
+ * Linux GPIO backend using WiringNP
  *
  * Copyright (C) 2010, Florian Fainelli <f.fainelli@gmail.com>
  *
@@ -17,7 +17,8 @@
 
 #include <wiringPi.h>
 
-void gpio_init()
+void
+gpio_init()
 {
 	wiringPiSetupGpio();
 }
@@ -40,7 +41,6 @@ gpio_set_direction(int n, enum gpio_direction direction)
 		[GPIO_DIRECTION_IN]	= OUTPUT,
 		[GPIO_DIRECTION_OUT]	= INPUT
 	};
-	
 	pinMode (n, str[direction]);
 	return 0;
 }
@@ -49,10 +49,7 @@ int
 gpio_get_value(int n, bool *value)
 {
 	int res = digitalRead(n);
-	
 	*value = res != 0;
-	
-
 	return 0;
 }
 
