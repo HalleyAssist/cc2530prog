@@ -953,6 +953,7 @@ static int cc2530_chip_identify(struct cc2530_cmd *cmd, int *flash_size)
 		*flash_size = 128;
 		break;
 	case 4:
+	case 7:
 		*flash_size = 256;
 	}
 
