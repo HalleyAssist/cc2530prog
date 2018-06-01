@@ -320,17 +320,18 @@ static void delay_ns(unsigned int ns)
     nanosleep (&sleeper, &dummy) ;
 }
 
-void delay (unsigned int millis)
+void delay (unsigned int micros)
 {
-  usleep (millis) ;
+  usleep (micros) ;
 }
 
 
 static int cc2530_leave_debug(void)
 {
     gpio_set_value(RST_GPIO, 0);
-    delay(100);
+    delay(1);
     gpio_set_value(RST_GPIO, 1);
+    delay(1);
     return 0;
 }
 
@@ -347,7 +348,7 @@ static int cc2530_enter_debug(void)
     gpio_set_value(DATA_GPIO, 0);
 
     gpio_set_value(RST_GPIO, 0);
-    delay(10);
+    delay(1);
     gpio_set_value(CCLK_GPIO, 0);
     delay(1);
     gpio_set_value(CCLK_GPIO, 1);
@@ -359,7 +360,7 @@ static int cc2530_enter_debug(void)
     gpio_set_value(CCLK_GPIO, 0);
     delay(1);
     gpio_set_value(RST_GPIO, 1);
-    delay(10);
+    delay(1);
 
     debug_enabled = 1;
 
