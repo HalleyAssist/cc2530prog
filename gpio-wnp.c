@@ -38,8 +38,8 @@ int
 gpio_set_direction(int n, enum gpio_direction direction)
 {
 	static const int str[] = {
-		[GPIO_DIRECTION_IN]	= OUTPUT,
-		[GPIO_DIRECTION_OUT]	= INPUT
+		[GPIO_DIRECTION_IN]	= INPUT,
+		[GPIO_DIRECTION_OUT]	= OUTPUT
 	};
 	pinMode (n, str[direction]);
 	return 0;
