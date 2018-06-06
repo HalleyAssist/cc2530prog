@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "gpio.h"
 
@@ -678,10 +679,14 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 	uint16_t i;
 	uint32_t addr = 0;
 	int ret;
-
+	time_t start_time, end_time;
+	
 	for (bank = 0; bank < 8; bank++) {
-		if (verbose)
-			printf("Reading bank: %d\n", bank);
+		if (verbose) {
+			start_time = time(0);
+			printf("Reading bank: %d", bank);
+			fflush(stdout);
+		}
 
 		ret = cc2530_write_xdata_memory(cmd, X_MEMCTR, bank);
 		if (ret) {
@@ -727,6 +732,10 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 				return ret;
 			}
 			addr++;
+		}
+		if (verbose) {
+			end_time = time(0);
+			printf(" (%lds)\n", end_time - start_time);
 		}
 	}
 
@@ -1000,10 +1009,13 @@ static int cc2530_do_program(struct cc2530_cmd *cmd, off_t fwsize, unsigned do_r
 	init_flash_ptr();
 
 	blocks = DIV_ROUND_UP(fwsize, PROG_BLOCK_SIZE);
-
+	
+	time_t start_time = time(0);
 	ret = cc2530_program_flash(cmd, blocks);
+	time_t end_time = time(0);
+	
 	if (ret && verbose)
-		printf("Programmed at maximum speed\n");
+		printf("Programmed at maximum speed in %lds\n", end_time - start_time);
 
 	if (!do_readback)
 		goto cc2530_reset_mcu;
@@ -1204,4 +1216,5 @@ out:
 	cc2530_gpio_deinit();
 	return ret;
 }
+
 
