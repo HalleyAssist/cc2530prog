@@ -5,7 +5,7 @@
 WiringNP needs to be installed.
 
 ```
-git clone https://github.com/friendlyarm/WiringNP
+git clone https://github.com/HalleyAssist/WiringNP
 cd WiringNP/
 chmod 755 build
 ./build
