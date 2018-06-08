@@ -15,45 +15,80 @@
 #include <time.h>
 
 #include "gpio.h"
-
+#define SYSFS_GPIO "/sys/class/gpio"
 #include <wiringPi.h>
 
-struct timespec sleeper = {.tv_sec = 0}, dummy;
+static int write_count = 5;
 
-static void
-delay_ns(unsigned int ns)
+// File writer from gpio-sysfs, see gpio_export comment
+int
+write_file(const char *path, const char *str)
 {
-    sleeper.tv_nsec = ns ;
-    nanosleep (&sleeper, &dummy) ;
+	int fd;
+	int ret;
+
+	fd = open(path, O_WRONLY);
+	if (fd < 0) {
+		perror(path);
+		return -1;
+	}
+
+	ret = write(fd, str, strlen(str));
+	if (ret < 0) {
+		if (errno == EBUSY)
+			ret = 0;
+		else
+			perror("write");
+	}
+
+	close(fd);
+
+	return ret < 0 ? -1 : 0;
 }
 
 void
 gpio_init()
 {
 	wiringPiSetupGpio();
+	// Bits are banged multiple (WNP_WRITE_COUNT||5) times. This is probably
+	// equivalent to a busy loop but is more tunable than counting to 10^n.
+	const char* s = getenv("WNP_WRITE_COUNT");
+	if (s == NULL) return;
+	int env_write_count = atoi(s);
+	if (env_write_count > 0) {
+		write_count = env_write_count;
+	}
 }
 
 int
 gpio_export(int n)
 {
-	return 0;
+	// WiringNP shouldn't require this, but testing shows that the RST_GPIO
+	// needs to be exported with direction 'out' via sysfs. I don't know why.
+	char buf[16];
+	char path[128];
+	snprintf(buf, sizeof (buf), "%d", n);
+	snprintf(path, sizeof (path), SYSFS_GPIO "/gpio%d/direction", n);
+	return write_file(SYSFS_GPIO "/export", buf) || write_file(path, "out");
+
 }
 
 int
 gpio_unexport(int n)
 {
-	return 0;
+	char buf[16];
+	snprintf(buf, sizeof(buf), "%d", n);
+	return write_file(SYSFS_GPIO "/unexport", buf);
 }
 
 int
 gpio_set_direction(int n, enum gpio_direction direction)
 {
 	static const int str[] = {
-		[GPIO_DIRECTION_IN]	 = INPUT,
+		[GPIO_DIRECTION_IN]  = INPUT,
 		[GPIO_DIRECTION_OUT] = OUTPUT
 	};
-	pinMode (n, str[direction]);
-	delay_ns(50);
+	pinMode(n, str[direction]);
 	return 0;
 }
 
@@ -68,8 +103,8 @@ gpio_get_value(int n, bool *value)
 int
 gpio_set_value(int n, bool value)
 {
-	digitalWrite (n, (int)value);
-	if (n == CCLK_GPIO) delay_ns(1);
-	else if (n == RST_GPIO) usleep(1);
+	for (int i = 0; i < write_count; i++) {
+		digitalWrite(n, (int)value);
+	}
 	return 0;
 }
