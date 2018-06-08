@@ -684,7 +684,7 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 	for (bank = 0; bank < 8; bank++) {
 		if (verbose) {
 			start_time = time(0);
-			printf("Reading bank: %d", bank);
+			printf("Reading bank: %d ", bank);
 			fflush(stdout);
 		}
 
@@ -707,8 +707,13 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 		}
 
 		for (i = 0; i < 32*1024; i++) {
-			if (addr == max_addr)
+			if (addr == max_addr) {
+				if (verbose) {
+					end_time = time(0);
+					printf("(%lds)\n", end_time - start_time);
+				}
 				return addr;
+			}
 
 			instr[0] = 0xE0;
 			cmd->in = 1;
@@ -735,7 +740,7 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 		}
 		if (verbose) {
 			end_time = time(0);
-			printf(" (%lds)\n", end_time - start_time);
+			printf("(%lds)\n", end_time - start_time);
 		}
 	}
 
