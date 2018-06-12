@@ -67,6 +67,7 @@ static unsigned verbose, progress;
 
 /* IDs that we recognize */
 #define CC2530_ID		0xA5
+#define CC2530_ID2		0xAD
 
 /* Buffers */
 #define ADDR_BUF0		0x0000 /* 1K */
@@ -883,7 +884,7 @@ static int cc2530_chip_identify(struct cc2530_cmd *cmd, int *flash_size)
 	}
 
 	/* Check that we actually know that chip */
-	if (result[0] != CC2530_ID) {
+	if (result[0] != CC2530_ID && result[0] != CC2530_ID2) {
 		fprintf(stderr, "unknown Chip ID: %02x\n", result[0]);
 		if (result[0] == 0xFF || result[0] == 0)
 			fprintf(stderr, "someone is holding the CLK/DATA lines against us "
