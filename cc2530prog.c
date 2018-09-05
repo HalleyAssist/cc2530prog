@@ -927,7 +927,6 @@ static int cc2530_chip_identify(struct cc2530_cmd *cmd, int *flash_size)
 		else
 			printf("USB: not availabe\n");
 	}
-
 	switch ((result[0] & 0x70) >> 4) {
 	case 1:
 		*flash_size = 32;
@@ -939,6 +938,8 @@ static int cc2530_chip_identify(struct cc2530_cmd *cmd, int *flash_size)
 		*flash_size = 128;
 		break;
 	case 4:
+	case 5:
+	case 6:
 	case 7:
 		*flash_size = 256;
 	}
@@ -1095,7 +1096,7 @@ int main(int argc, char **argv)
 	struct stat buf;
 	int flash_size = 0;
 	unsigned int retry_cnt = 3;
-	
+
 	gpio_init();
 
 	while ((opt = getopt(argc, argv, "f:rRlc:ivP")) > 0) {
