@@ -671,7 +671,7 @@ static int cc2530_write_xdata_memory_block(struct cc2530_cmd *cmd,
 	return 0;
 }
 
-static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
+static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr, unsigned fail_on_mismatch)
 {
 	uint8_t bank;
 	unsigned char instr[3];
@@ -728,6 +728,9 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 			if (result != expected) {
 				printf("[bank%d][%d], result: %02x, expected: %02x\n",
 						bank, i, result, expected);
+				if (fail_on_mismatch) {
+					return addr;
+				}
 			}
 
 			instr[0] = 0xA3;
@@ -1028,19 +1031,19 @@ static int cc2530_do_program(struct cc2530_cmd *cmd, off_t fwsize, unsigned do_r
 
 	init_flash_ptr();
 
-	num_bytes_ok = cc2530_flash_verify(cmd, blocks * PROG_BLOCK_SIZE);
-	if (num_bytes_ok == (blocks * PROG_BLOCK_SIZE)) {
-		if (verbose)
-			printf("Verification OK\n");
-		goto cc2530_reset_mcu;
-	} else
-		if (verbose)
+	num_bytes_ok = cc2530_flash_verify(cmd, blocks * PROG_BLOCK_SIZE, (do_readback > 1));
+	ret = (blocks * PROG_BLOCK_SIZE) - num_bytes_ok;
+	if (verbose) {
+		if (ret)
 			printf("Verification failed\n");
+		else
+			printf("Verification OK\n");
+	}
 
 cc2530_reset_mcu:
 	cc2530_leave_debug();
 
-	return 0;
+	return ret;
 }
 
 static int cc2530_oneshot_command(struct cc2530_cmd *cmd, const char *command)
@@ -1072,6 +1075,7 @@ static void usage(void)
 		"\t-P:     show progress\n"
 		"\t-f:     firmware file\n"
 		"\t-r:     perform readback\n"
+		"\t-R:     perform readback with immediate fail on mismatch\n"
 		"\t-c:     single command to send\n"
 		"\t-l:     list available commands\n");
 	exit(-1);
@@ -1094,13 +1098,16 @@ int main(int argc, char **argv)
 	
 	gpio_init();
 
-	while ((opt = getopt(argc, argv, "f:rlc:ivP")) > 0) {
+	while ((opt = getopt(argc, argv, "f:rRlc:ivP")) > 0) {
 		switch (opt) {
 		case 'f':
 			firmware = optarg;
 			break;
 		case 'r':
-			do_readback = 1;
+			do_readback += 1;
+			break;
+		case 'R':
+			do_readback += 2;
 			break;
 		case 'l':
 			do_list = 1;
