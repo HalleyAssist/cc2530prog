@@ -1154,7 +1154,7 @@ int main(int argc, char **argv)
 	}
 
 	if (command) {
-		cc2530_oneshot_command(cmd, command);
+		ret = cc2530_oneshot_command(cmd, command);
 		goto out;
 	}
 
@@ -1170,6 +1170,7 @@ int main(int argc, char **argv)
 
 	if (!S_ISREG(buf.st_mode)) {
 		fprintf(stderr, "%s is not a regular file\n", firmware);
+		ret = -1;
 		goto out;
 	}
 
@@ -1193,12 +1194,14 @@ int main(int argc, char **argv)
 	if (fwsize > flash_size) {
 		fprintf(stderr, "firmware file too big: %ld (max: %d)\n",
 						fwsize, flash_size);
+		ret = -1;
 		goto out;
 	}
 
 	f = open(firmware, O_RDONLY);
 	if (!f) {
 		fprintf(stderr, "cannot open firmware: %s\n", firmware);
+		ret = -1;
 		goto out;
 	}
 
@@ -1214,6 +1217,7 @@ int main(int argc, char **argv)
 
 	if (read(f, fwdata, fwsize) < 0) {
 		fprintf(stderr, "premature end of read\n");
+		ret = -1;
 		goto out_free;
 	}
 
