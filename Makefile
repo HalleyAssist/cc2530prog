@@ -6,6 +6,7 @@ CC?=gcc
 CFLAGS?=
 APP=cc2530prog
 GPIO_BACKEND?=gpio-wnp
+LIBS?=-lwiringPi
 
 all: $(APP)
 
@@ -15,7 +16,7 @@ all: $(APP)
 OBJS=$(APP).o $(GPIO_BACKEND).o
 
 $(APP): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -lwiringPi -o $@
+	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $@
 
 clean:
 	rm -f *.o $(APP)
