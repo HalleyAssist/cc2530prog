@@ -8,10 +8,10 @@
 #include <stdbool.h>
 
 /* Reset polarity is active low */
-#define RST_GPIO        0
+#define RST_GPIO        203
 #define  RST_GPIO_POL   !       /* Active low polarity */
-#define CCLK_GPIO       1
-#define DATA_GPIO       2
+#define CCLK_GPIO       14
+#define DATA_GPIO       13
 
 /*
  * gpio sysfs helpers
