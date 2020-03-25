@@ -7,7 +7,7 @@ CFLAGS?=
 APP=cc2530prog
 GPIO_BACKEND?=gpio-wnp
 
-ifeq $(GPIO_BACKEND) 'gpio-wnp'
+ifeq ($(GPIO_BACKEND), 'gpio-wnp')
 LIBS?=-lwiringPi
 else
 LIBS?=""
