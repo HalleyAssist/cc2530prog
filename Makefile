@@ -8,8 +8,8 @@ APP=cc2530prog
 GPIO_BACKEND?=gpio-wnp
 
 LIBS?=""
-ifeq ($(GPIO_BACKEND), 'gpio-wnp')
-LIBS += " -lwiringPi"
+ifeq ($(GPIO_BACKEND), gpio-wnp)
+LIBS := "$(LIBS) -lwiringPi"
 endif
 
 all: $(APP)
