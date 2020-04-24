@@ -17,6 +17,13 @@
 
 #define SYSFS_GPIO	"/sys/class/gpio"
 
+int fds[256];
+
+void gpio_init()
+{
+	memset(fds, 0, sizeof(fds));
+}
+
 int read_file(const char *path, char *str, size_t size)
 {
 	int fd;
@@ -119,8 +126,25 @@ int
 gpio_set_value(int n, bool value)
 {
 	char path[128];
+	int ret, fd;
+	
+	fd = fds[n];
+	if(!fd){
+		snprintf(path, sizeof (path), SYSFS_GPIO "/gpio%d/value", n);
+		fds[n] = open(path, O_WRONLY);
+		if (fds[n] < 0) {
+			perror(path);
+			return -1;
+		}
+	}
+	
+	ret = write(fd, value ? "1" : "0", 1);
+	if (ret < 0) {
+		if (errno == EBUSY)
+			ret = 0;
+		else
+			perror("write");
+	}
 
-	snprintf(path, sizeof (path), SYSFS_GPIO "/gpio%d/value", n);
-
-	return write_file(path, value ? "1" : "0");
+	return ret;
 }
