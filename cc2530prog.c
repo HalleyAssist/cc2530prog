@@ -13,12 +13,12 @@
 #include <getopt.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "gpio.h"
 
@@ -67,6 +67,7 @@ static unsigned verbose, progress;
 
 /* IDs that we recognize */
 #define CC2530_ID		0xA5
+#define CC2530_ID2		0xAD
 
 /* Buffers */
 #define ADDR_BUF0		0x0000 /* 1K */
@@ -148,7 +149,7 @@ const uint8_t dma_desc[32] = {
 	0x42                            /* increment source */
 };
 
-static uint16_t flash_ptr = 0;
+static uint32_t flash_ptr = 0;
 
 static void init_flash_ptr(void)
 {
@@ -311,29 +312,9 @@ static int cc2530_gpio_deinit(void)
 	return 0;
 }
 
-
-static void delay_ns(unsigned int ns)
-{
-    struct timespec sleeper, dummy;
-    sleeper.tv_sec  = 0;
-    sleeper.tv_nsec = ns ;
-    nanosleep (&sleeper, &dummy) ;
-}
-
-void delay (unsigned int millis)
-{
-  struct timespec sleeper, dummy ;
-
-  sleeper.tv_sec  = (time_t)(millis / 1000) ;
-  sleeper.tv_nsec = (long)(millis % 1000) * 1000000 ;
-  nanosleep (&sleeper, &dummy) ;
-}
-
-
 static int cc2530_leave_debug(void)
 {
     gpio_set_value(RST_GPIO, 0);
-    delay(100);
     gpio_set_value(RST_GPIO, 1);
     return 0;
 }
@@ -350,23 +331,13 @@ static int cc2530_enter_debug(void)
     cc2530_leave_debug();
     gpio_set_value(CCLK_GPIO, 0);
     gpio_set_value(DATA_GPIO, 0);
-
-
     gpio_set_value(RST_GPIO, 0);
-    delay(10);
     gpio_set_value(CCLK_GPIO, 0);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 1);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 0);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 1);
-    delay(1);
     gpio_set_value(CCLK_GPIO, 0);
-    delay(1);
     gpio_set_value(RST_GPIO, 1);
-    delay(10);
-
     debug_enabled = 1;
 
     return 0;
@@ -382,18 +353,13 @@ static inline void send_byte(unsigned char byte)
 
     /* Data setup on rising clock edge */
     for (i = 7; i >= 0; i--) {
-        //
+
         if (byte & (1 << i))
             gpio_set_value(DATA_GPIO, 1);
         else
             gpio_set_value(DATA_GPIO, 0);
-
-
         gpio_set_value(CCLK_GPIO, 1);
-        delay_ns(1);
-
         gpio_set_value(CCLK_GPIO, 0);
-        delay_ns(1);
     }
 }
 
@@ -410,7 +376,6 @@ static inline void read_byte(unsigned char *byte)
     for (i = 7; i >= 0; i--) {
 
         gpio_set_value(CCLK_GPIO, 1);
-        delay_ns(1);
 
         gpio_get_value(DATA_GPIO, &val);
 
@@ -706,7 +671,7 @@ static int cc2530_write_xdata_memory_block(struct cc2530_cmd *cmd,
 	return 0;
 }
 
-static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
+static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr, unsigned fail_on_mismatch)
 {
 	uint8_t bank;
 	unsigned char instr[3];
@@ -715,10 +680,14 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 	uint16_t i;
 	uint32_t addr = 0;
 	int ret;
-
+	time_t start_time, end_time;
+	
 	for (bank = 0; bank < 8; bank++) {
-		if (verbose)
-			printf("Reading bank: %d\n", bank);
+		if (verbose) {
+			start_time = time(0);
+			printf("Reading bank: %d ", bank);
+			fflush(stdout);
+		}
 
 		ret = cc2530_write_xdata_memory(cmd, X_MEMCTR, bank);
 		if (ret) {
@@ -739,8 +708,13 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 		}
 
 		for (i = 0; i < 32*1024; i++) {
-			if (addr == max_addr)
+			if (addr == max_addr) {
+				if (verbose) {
+					end_time = time(0);
+					printf("(%lds)\n", end_time - start_time);
+				}
 				return addr;
+			}
 
 			instr[0] = 0xE0;
 			cmd->in = 1;
@@ -754,6 +728,9 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 			if (result != expected) {
 				printf("[bank%d][%d], result: %02x, expected: %02x\n",
 						bank, i, result, expected);
+				if (fail_on_mismatch) {
+					return addr;
+				}
 			}
 
 			instr[0] = 0xA3;
@@ -764,6 +741,10 @@ static uint32_t cc2530_flash_verify(struct cc2530_cmd *cmd, uint32_t max_addr)
 				return ret;
 			}
 			addr++;
+		}
+		if (verbose) {
+			end_time = time(0);
+			printf("(%lds)\n", end_time - start_time);
 		}
 	}
 
@@ -906,7 +887,7 @@ static int cc2530_chip_identify(struct cc2530_cmd *cmd, int *flash_size)
 	}
 
 	/* Check that we actually know that chip */
-	if (result[0] != CC2530_ID) {
+	if (result[0] != CC2530_ID && result[0] != CC2530_ID2) {
 		fprintf(stderr, "unknown Chip ID: %02x\n", result[0]);
 		if (result[0] == 0xFF || result[0] == 0)
 			fprintf(stderr, "someone is holding the CLK/DATA lines against us "
@@ -946,7 +927,6 @@ static int cc2530_chip_identify(struct cc2530_cmd *cmd, int *flash_size)
 		else
 			printf("USB: not availabe\n");
 	}
-
 	switch ((result[0] & 0x70) >> 4) {
 	case 1:
 		*flash_size = 32;
@@ -958,6 +938,9 @@ static int cc2530_chip_identify(struct cc2530_cmd *cmd, int *flash_size)
 		*flash_size = 128;
 		break;
 	case 4:
+	case 5:
+	case 6:
+	case 7:
 		*flash_size = 256;
 	}
 
@@ -1036,29 +1019,32 @@ static int cc2530_do_program(struct cc2530_cmd *cmd, off_t fwsize, unsigned do_r
 	init_flash_ptr();
 
 	blocks = DIV_ROUND_UP(fwsize, PROG_BLOCK_SIZE);
-
+	
+	time_t start_time = time(0);
 	ret = cc2530_program_flash(cmd, blocks);
+	time_t end_time = time(0);
+	
 	if (ret && verbose)
-		printf("Programmed at maximum speed\n");
+		printf("Programmed at maximum speed in %lds\n", end_time - start_time);
 
 	if (!do_readback)
 		goto cc2530_reset_mcu;
 
 	init_flash_ptr();
 
-	num_bytes_ok = cc2530_flash_verify(cmd, blocks * PROG_BLOCK_SIZE);
-	if (num_bytes_ok == (blocks * PROG_BLOCK_SIZE)) {
-		if (verbose)
-			printf("Verification OK\n");
-		goto cc2530_reset_mcu;
-	} else
-		if (verbose)
+	num_bytes_ok = cc2530_flash_verify(cmd, blocks * PROG_BLOCK_SIZE, (do_readback > 1));
+	ret = (blocks * PROG_BLOCK_SIZE) - num_bytes_ok;
+	if (verbose) {
+		if (ret)
 			printf("Verification failed\n");
+		else
+			printf("Verification OK\n");
+	}
 
 cc2530_reset_mcu:
 	cc2530_leave_debug();
 
-	return 0;
+	return ret;
 }
 
 static int cc2530_oneshot_command(struct cc2530_cmd *cmd, const char *command)
@@ -1090,6 +1076,7 @@ static void usage(void)
 		"\t-P:     show progress\n"
 		"\t-f:     firmware file\n"
 		"\t-r:     perform readback\n"
+		"\t-R:     perform readback with immediate fail on mismatch\n"
 		"\t-c:     single command to send\n"
 		"\t-l:     list available commands\n");
 	exit(-1);
@@ -1110,13 +1097,18 @@ int main(int argc, char **argv)
 	int flash_size = 0;
 	unsigned int retry_cnt = 3;
 
-	while ((opt = getopt(argc, argv, "f:rlc:ivP")) > 0) {
+	gpio_init();
+
+	while ((opt = getopt(argc, argv, "f:rRlc:ivP")) > 0) {
 		switch (opt) {
 		case 'f':
 			firmware = optarg;
 			break;
 		case 'r':
-			do_readback = 1;
+			do_readback += 1;
+			break;
+		case 'R':
+			do_readback += 2;
 			break;
 		case 'l':
 			do_list = 1;
@@ -1162,7 +1154,7 @@ int main(int argc, char **argv)
 	}
 
 	if (command) {
-		cc2530_oneshot_command(cmd, command);
+		ret = cc2530_oneshot_command(cmd, command);
 		goto out;
 	}
 
@@ -1178,6 +1170,7 @@ int main(int argc, char **argv)
 
 	if (!S_ISREG(buf.st_mode)) {
 		fprintf(stderr, "%s is not a regular file\n", firmware);
+		ret = -1;
 		goto out;
 	}
 
@@ -1201,12 +1194,14 @@ int main(int argc, char **argv)
 	if (fwsize > flash_size) {
 		fprintf(stderr, "firmware file too big: %ld (max: %d)\n",
 						fwsize, flash_size);
+		ret = -1;
 		goto out;
 	}
 
 	f = open(firmware, O_RDONLY);
 	if (!f) {
 		fprintf(stderr, "cannot open firmware: %s\n", firmware);
+		ret = -1;
 		goto out;
 	}
 
@@ -1222,6 +1217,7 @@ int main(int argc, char **argv)
 
 	if (read(f, fwdata, fwsize) < 0) {
 		fprintf(stderr, "premature end of read\n");
+		ret = -1;
 		goto out_free;
 	}
 
@@ -1238,4 +1234,5 @@ out:
 	cc2530_gpio_deinit();
 	return ret;
 }
+
 

@@ -8,10 +8,10 @@
 #include <stdbool.h>
 
 /* Reset polarity is active low */
-#define RST_GPIO        0
+#define RST_GPIO        203
 #define  RST_GPIO_POL   !       /* Active low polarity */
-#define CCLK_GPIO       1
-#define DATA_GPIO       2
+#define CCLK_GPIO       14
+#define DATA_GPIO       13
 
 /*
  * gpio sysfs helpers
@@ -22,6 +22,7 @@ enum gpio_direction {
 	GPIO_DIRECTION_HIGH,
 };
 
+void gpio_init();
 int gpio_export(int n);
 int gpio_unexport(int n);
 int gpio_set_direction(int n, enum gpio_direction direction);
