@@ -17,11 +17,13 @@
 
 #define SYSFS_GPIO	"/sys/class/gpio"
 
-int fds[256];
+int value_fds[256];
+int direction_fds[256];
 
 void gpio_init()
 {
-	memset(fds, 0, sizeof(fds));
+	memset(value_fds, 0, sizeof(value_fds));
+	memset(direction_fds, 0, sizeof(direction_fds));
 }
 
 int read_file(const char *path, char *str, size_t size)
@@ -72,6 +74,26 @@ int write_file(const char *path, const char *str)
 	return ret < 0 ? -1 : 0;
 }
 
+static int open_fd_value(int n){
+	char path[128];
+	snprintf(path, sizeof (path), SYSFS_GPIO "/gpio%d/value", n);
+	value_fds[n] = open(path, O_RDWR);
+	if (value_fds[n] < 0) {
+		perror(path);
+		return -1;
+	}
+	return value_fds[n];
+}
+static int open_fd_direction(int n){
+	char path[128];
+	snprintf(path, sizeof (path), SYSFS_GPIO "/gpio%d/direction", n);
+	direction_fds[n] = open(path, O_RDWR);
+	if (direction_fds[n] < 0) {
+		perror(path);
+		return -1;
+	}
+	return direction_fds[n];
+}
 
 int
 gpio_export(int n)
@@ -100,22 +122,46 @@ gpio_set_direction(int n, enum gpio_direction direction)
 		[GPIO_DIRECTION_OUT]	= "out",
 		[GPIO_DIRECTION_HIGH]	= "high",
 	};
-	char path[128];
 
-	snprintf(path, sizeof (path), SYSFS_GPIO "/gpio%d/direction", n);
+	static const int lens[] = {
+		[GPIO_DIRECTION_IN]	= 2,
+		[GPIO_DIRECTION_OUT]	= 3,
+		[GPIO_DIRECTION_HIGH]	= 4,
+	};
+	
+	int ret;
+	int fd = direction_fds[n];
+	if(!fd){
+		fd = open_fd_direction(n);
+	}
 
-	return write_file(path, str[direction]);
+	ret = write(fd, str[direction], lens[direction]);
+	if (ret < 0) {
+		if (errno == EBUSY)
+			ret = 0;
+		else
+			perror("write");
+	}
+
+	return ret;
 }
 
 int
 gpio_get_value(int n, bool *value)
 {
-	char buf[128];
+	int ret, fd;
+	char buf[2];
 
-	snprintf(buf, sizeof (buf), SYSFS_GPIO "/gpio%d/value", n);
-
-	if (read_file(buf, buf, sizeof (buf)) < 0)
-		return -1;
+	fd = value_fds[n];
+	if(!fd){
+		fd = open_fd_value(n);
+	}
+	
+	ret = read(fd, buf, sizeof(buf));
+	if(ret <= 0) {
+		perror("read");
+		return ret;
+	}
 
 	*value = (*buf != '0');
 
@@ -125,17 +171,11 @@ gpio_get_value(int n, bool *value)
 int
 gpio_set_value(int n, bool value)
 {
-	char path[128];
 	int ret, fd;
 	
-	fd = fds[n];
+	fd = value_fds[n];
 	if(!fd){
-		snprintf(path, sizeof (path), SYSFS_GPIO "/gpio%d/value", n);
-		fds[n] = open(path, O_WRONLY);
-		if (fds[n] < 0) {
-			perror(path);
-			return -1;
-		}
+		fd = open_fd_value(n);
 	}
 	
 	ret = write(fd, value ? "1" : "0", 1);
