@@ -159,6 +159,7 @@ gpio_get_value(int n, bool *value)
 		fd = open_fd_value(n);
 	}
 	
+	lseek(fd, 0, SEEK_SET);
 	ret = read(fd, buf, sizeof(buf));
 	if(ret <= 0) {
 		perror("read");
@@ -180,6 +181,7 @@ gpio_set_value(int n, bool value)
 		fd = open_fd_value(n);
 	}
 	
+	//lseek(fd, 0, SEEK_SET);
 	ret = write(fd, value ? "1" : "0", 1);
 	if (ret < 0) {
 		if (errno == EBUSY)
