@@ -141,6 +141,8 @@ gpio_set_direction(int n, enum gpio_direction direction)
 			ret = 0;
 		else
 			perror("write");
+	}else{
+		ret = 0;
 	}
 
 	return ret;
@@ -184,6 +186,8 @@ gpio_set_value(int n, bool value)
 			ret = 0;
 		else
 			perror("write");
+	}else{
+		ret = 0;
 	}
 
 	return ret;
